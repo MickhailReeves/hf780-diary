@@ -502,7 +502,7 @@ function swap(page, dir){
 
 /* ---------- shared pieces ---------- */
 function logo(){
-  const img = h('img',{src:'assets/logo.png',alt:'Bentley University, HF770 Diary'});
+  const img = h('img',{src:'assets/logo.png',alt:'Bentley University, HF780 Diary'});
   const wrap = h('span',{class:'brand'}, img);
   img.addEventListener('error',()=>{ wrap.replaceChildren(h('span',{class:'brand-text'},'HF780 Diary')); });
   return wrap;
