@@ -12,15 +12,15 @@
 <style>
 :root{
   --desk:#DDE6EC;
-  --paper:#F8EDD1;
-  --paper-2:#F3E4C2;
+  --paper:#FBF9F3;
+  --paper-2:#F1ECDF;
   --line:rgba(0,117,190,.20);
   --ink:#243B57;
   --navy:#2B4566;
   --blue:#0075BE;
   --blue-dark:#005F99;
   --yellow:#FFCC33;
-  --note:#FFF0B0;
+  --note:#FFEE9E;
   --grey:#B3C4CC;
   --grey-dark:#5C6772;
   --err:#A23B2A;
@@ -44,7 +44,7 @@ h1[tabindex='-1']:focus{outline:none}
 .book{position:relative;width:100%;max-width:700px;margin:0 auto 120px}
 .book::before,.book::after{content:"";position:absolute;border-radius:4px 10px 10px 4px;background:var(--paper-2);box-shadow:0 1px 2px rgba(36,59,87,.25);z-index:0}
 .book::before{inset:7px -7px -7px 7px}
-.book::after{inset:13px -13px -13px 13px;background:#EADBB5}
+.book::after{inset:13px -13px -13px 13px;background:#E4DDCB}
 .stage{position:relative;z-index:1;perspective:2600px}
 .stage.flipping{pointer-events:none}
 .paper{
@@ -97,7 +97,7 @@ p{margin:0 0 12px}
 .head .brand{display:flex;align-items:center}.head .brand img{height:32px;width:auto}
 .brand-text{font:600 1rem var(--display);color:var(--navy)}
 .badge{display:flex;align-items:center;line-height:1;gap:10px;font:600 .84rem var(--ui);color:var(--navy)}
-.badge .nm{position:relative;background:linear-gradient(180deg,#fff,#f3ecd6);border-radius:16px 20px 17px 21px / 20px 16px 21px 17px;padding:8px 16px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+.badge .nm{position:relative;background:linear-gradient(180deg,#fff,#f1ece0);border-radius:16px 20px 17px 21px / 20px 16px 21px 17px;padding:8px 16px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font:600 1.15rem var(--hand);box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,2px 3px 0 rgba(43,69,102,.4);outline:1.5px dashed rgba(43,69,102,.5);outline-offset:-5px}
 .linkbtn-unused{background:none;border:0;padding:12px 4px;min-height:44px;min-width:44px;font:600 .84rem var(--ui);letter-spacing:.04em;color:var(--blue-dark);text-decoration:underline;text-underline-offset:3px}
 .linkbtn:hover{color:#004a78}
@@ -113,13 +113,13 @@ p{margin:0 0 12px}
 .btn:hover{transform:rotate(1deg) translateY(-2px);box-shadow:0 -2px 0 rgba(0,40,80,.3) inset,3px 5px 0 rgba(43,69,102,.35),0 12px 14px -6px rgba(0,60,110,.55)}
 .btn:active{transform:rotate(0) translate(2px,3px);box-shadow:0 -2px 0 rgba(0,40,80,.3) inset,0 1px 0 rgba(43,69,102,.35)}
 .btn[disabled]{opacity:.5;cursor:default;transform:rotate(-1deg)}
-.btn.ghost{background:linear-gradient(180deg,#fff,#f3ecd6);color:var(--navy);
+.btn.ghost{background:linear-gradient(180deg,#fff,#f1ece0);color:var(--navy);
   box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,2px 3px 0 rgba(43,69,102,.4),0 8px 12px -6px rgba(43,69,102,.4)}
 .btn.ghost::after{border-color:rgba(43,69,102,.5)}
 .btn.ghost:hover{background:linear-gradient(180deg,#fffbe6,#ffefb0);transform:rotate(1deg) translateY(-2px);
   box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,3px 5px 0 rgba(43,69,102,.4),0 12px 14px -6px rgba(43,69,102,.45)}
 .btn.ghost:active{transform:rotate(0) translate(2px,3px);box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,0 1px 0 rgba(43,69,102,.4)}
-.btn.white{background:linear-gradient(180deg,#fff,#f8f1db);color:var(--navy);box-shadow:0 -2px 0 rgba(43,69,102,.14) inset,2px 3px 0 rgba(0,0,0,.35)}
+.btn.white{background:linear-gradient(180deg,#fff,#f4f0e6);color:var(--navy);box-shadow:0 -2px 0 rgba(43,69,102,.14) inset,2px 3px 0 rgba(0,0,0,.35)}
 .btn.white::after{border-color:rgba(43,69,102,.4)}
 .btn.white:hover{background:linear-gradient(180deg,#fff,#ffefb0);box-shadow:0 -2px 0 rgba(43,69,102,.14) inset,3px 5px 0 rgba(0,0,0,.35)}
 .btn.sm{padding:8px 22px 9px;min-height:44px;font-size:1.25rem}
@@ -215,11 +215,11 @@ button.entry:hover .note{color:var(--blue-dark)}
 }
 
 .nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,700px);z-index:30;display:flex;justify-content:space-around;align-items:flex-end;
-  padding:8px 20px calc(10px + env(safe-area-inset-bottom));background:rgba(251,244,225,.96);border-top:1.5px solid rgba(43,69,102,.3);backdrop-filter:blur(6px)}
+  padding:8px 20px calc(10px + env(safe-area-inset-bottom));background:rgba(253,251,246,.96);border-top:1.5px solid rgba(43,69,102,.3);backdrop-filter:blur(6px)}
 .nav[hidden]{display:none}
 .nav button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--grey-dark);font:600 .72rem var(--ui);letter-spacing:.06em;padding:4px 12px}
 .nav button.on{color:var(--blue-dark)}
-.nav .plus{margin-top:-30px;background:linear-gradient(180deg,#0a82cd,#0075BE);color:#fff;border-radius:50%;width:58px;height:58px;justify-content:center;padding:0;border:4px solid #FBF4E1;box-shadow:0 6px 14px rgba(0,117,190,.45),0 -2px 0 rgba(0,40,80,.25) inset;transition:transform .15s}
+.nav .plus{margin-top:-30px;background:linear-gradient(180deg,#0a82cd,#0075BE);color:#fff;border-radius:50%;width:58px;height:58px;justify-content:center;padding:0;border:4px solid #FDFBF6;box-shadow:0 6px 14px rgba(0,117,190,.45),0 -2px 0 rgba(0,40,80,.25) inset;transition:transform .15s}
 .nav .plus:active{transform:scale(.94)}
 .nav .plus .ic{transition:transform .25s cubic-bezier(.3,1.6,.5,1)}.nav .plus:hover .ic{transform:rotate(90deg)}
 .nav .plus:hover{background:linear-gradient(180deg,#0c8bd9,#0069ad)}
@@ -943,7 +943,7 @@ function openSheet(n, kind){
 
 function stampPosted(n){
   const wrap = h('div',{class:'stamp-wrap',role:'status','aria-live':'polite'});
-  wrap.innerHTML = '<svg viewBox="0 0 150 150" aria-label="Entry posted to Day '+n+'"><circle cx="75" cy="75" r="70" fill="#F8EDD1" opacity=".96"/><circle cx="75" cy="75" r="66" fill="none" stroke="#0075BE" stroke-width="4"/><circle cx="75" cy="75" r="56" fill="none" stroke="#0075BE" stroke-width="1.5"/><text x="75" y="72" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="600" font-size="25" fill="#0075BE" letter-spacing="2">POSTED</text><text x="75" y="98" text-anchor="middle" font-family="Source Sans 3,Arial,sans-serif" font-weight="600" font-size="13" fill="#0075BE" letter-spacing="3">DAY '+n+'</text></svg>';
+  wrap.innerHTML = '<svg viewBox="0 0 150 150" aria-label="Entry posted to Day '+n+'"><circle cx="75" cy="75" r="70" fill="#FBF9F3" opacity=".96"/><circle cx="75" cy="75" r="66" fill="none" stroke="#0075BE" stroke-width="4"/><circle cx="75" cy="75" r="56" fill="none" stroke="#0075BE" stroke-width="1.5"/><text x="75" y="72" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="600" font-size="25" fill="#0075BE" letter-spacing="2">POSTED</text><text x="75" y="98" text-anchor="middle" font-family="Source Sans 3,Arial,sans-serif" font-weight="600" font-size="13" fill="#0075BE" letter-spacing="3">DAY '+n+'</text></svg>';
   document.body.append(wrap);
   setTimeout(() => wrap.remove(), 2200);
 }
