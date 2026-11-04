@@ -97,7 +97,8 @@ p{margin:0 0 12px}
 .head .brand{display:flex;align-items:center}.head .brand img{height:32px;width:auto}
 .brand-text{font:600 1rem var(--display);color:var(--navy)}
 .badge{display:flex;align-items:center;line-height:1;gap:10px;font:600 .84rem var(--ui);color:var(--navy)}
-.badge .nm{background:#fff;border:1.5px solid var(--navy);border-radius:999px;padding:3px 12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge .nm{position:relative;background:linear-gradient(180deg,#fff,#f3ecd6);border-radius:16px 20px 17px 21px / 20px 16px 21px 17px;padding:8px 16px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:600 1.15rem var(--hand);box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,2px 3px 0 rgba(43,69,102,.4);outline:1.5px dashed rgba(43,69,102,.5);outline-offset:-5px}
 .linkbtn-unused{background:none;border:0;padding:12px 4px;min-height:44px;min-width:44px;font:600 .84rem var(--ui);letter-spacing:.04em;color:var(--blue-dark);text-decoration:underline;text-underline-offset:3px}
 .linkbtn:hover{color:#004a78}
 .sticker{position:absolute;pointer-events:none;z-index:0}
@@ -112,16 +113,19 @@ p{margin:0 0 12px}
 .btn:hover{transform:rotate(1deg) translateY(-2px);box-shadow:0 -2px 0 rgba(0,40,80,.3) inset,3px 5px 0 rgba(43,69,102,.35),0 12px 14px -6px rgba(0,60,110,.55)}
 .btn:active{transform:rotate(0) translate(2px,3px);box-shadow:0 -2px 0 rgba(0,40,80,.3) inset,0 1px 0 rgba(43,69,102,.35)}
 .btn[disabled]{opacity:.5;cursor:default;transform:rotate(-1deg)}
-.btn.ghost{background:rgba(255,255,255,.45);color:var(--navy);border:2px solid var(--navy);padding:6px 20px 7px;box-shadow:2px 3px 0 rgba(43,69,102,.25)}
-.btn.ghost::after{display:none}
-.btn.ghost:hover{background:var(--note);transform:rotate(1deg) translateY(-2px);box-shadow:3px 5px 0 rgba(43,69,102,.3)}
+.btn.ghost{background:linear-gradient(180deg,#fff,#f3ecd6);color:var(--navy);
+  box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,2px 3px 0 rgba(43,69,102,.4),0 8px 12px -6px rgba(43,69,102,.4)}
+.btn.ghost::after{border-color:rgba(43,69,102,.5)}
+.btn.ghost:hover{background:linear-gradient(180deg,#fffbe6,#ffefb0);transform:rotate(1deg) translateY(-2px);
+  box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,3px 5px 0 rgba(43,69,102,.4),0 12px 14px -6px rgba(43,69,102,.45)}
+.btn.ghost:active{transform:rotate(0) translate(2px,3px);box-shadow:0 -2px 0 rgba(43,69,102,.16) inset,0 1px 0 rgba(43,69,102,.4)}
 .btn.white{background:linear-gradient(180deg,#fff,#f8f1db);color:var(--navy);box-shadow:0 -2px 0 rgba(43,69,102,.14) inset,2px 3px 0 rgba(0,0,0,.35)}
 .btn.white::after{border-color:rgba(43,69,102,.4)}
 .btn.white:hover{background:linear-gradient(180deg,#fff,#ffefb0);box-shadow:0 -2px 0 rgba(43,69,102,.14) inset,3px 5px 0 rgba(0,0,0,.35)}
 .btn.sm{padding:8px 22px 9px;min-height:44px;font-size:1.25rem}
-.btn.ghost.sm{padding:6px 16px 7px;min-height:44px}
+.btn.ghost.sm{padding:6px 18px 7px;min-height:44px}
 .btn.xs{padding:5px 12px 6px;min-height:44px;font-size:1.15rem;gap:6px}
-.btn.xs.ghost{padding:4px 11px 5px}
+.btn.xs.ghost{padding:4px 13px 5px}
 .btn .ic{margin-right:-2px}
 label,.field-label{display:block;font:600 .78rem var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--navy);margin:0 0 4px}
 .field{margin-bottom:22px}
