@@ -48,7 +48,12 @@ h1[tabindex='-1']:focus{outline:none}
 .demo-note{max-width:700px;margin:0 auto 14px;font:600 .85rem var(--ui);color:var(--navy);background:var(--note);padding:8px 14px;border-radius:2px;box-shadow:0 1px 3px rgba(36,59,87,.25);transform:rotate(-.4deg)}
 .book{position:relative;width:100%;max-width:700px;margin:0 auto var(--bgap)}
 :root{--bgap:104px}
-body:has(.nav[hidden]){--bgap:22px}
+body:has(.nav[hidden]){--bgap:0px}
+/* signed out: no bottom nav, so the paper runs to the bottom edge of the screen */
+body:has(.nav[hidden]) .paper{min-height:calc(100vh - 10px);min-height:calc(100dvh - 10px);border-radius:4px 10px 0 0;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+body:has(.nav[hidden]) .book::before{inset:7px -7px 0 7px;border-radius:4px 10px 0 0}
+body:has(.nav[hidden]) .book::after{inset:13px -13px 0 13px;border-radius:4px 10px 0 0}
+body:has(.nav[hidden]) .face{border-radius:4px 10px 0 0}
 .book::before,.book::after{content:"";position:absolute;border-radius:4px 10px 10px 4px;background:var(--paper-2);box-shadow:0 1px 2px rgba(36,59,87,.25);z-index:0}
 .book::before{inset:7px -7px -7px 7px}
 .book::after{inset:13px -13px -13px 13px;background:#E4DDCB}
