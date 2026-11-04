@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#DDE6EC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1621" media="(prefers-color-scheme: dark)">
 <title>HF780 Diary</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,6 +33,8 @@
   --grain:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .35 0 0 0 0 .2 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box}
+:root{color-scheme:light dark}
+.brand .logo-d{display:none}
 html{-webkit-text-size-adjust:100%;overflow-x:hidden}
 body{margin:0;min-height:100vh;background:var(--desk);color:var(--ink);font:400 17px/1.5 var(--ui);padding:18px 12px 0;overflow-x:hidden}
 img{max-width:100%;display:block}
@@ -263,6 +268,68 @@ button.entry:hover .note{color:var(--blue-dark)}
   .cal{gap:5px}
   .book::before{inset:6px -4px -6px 4px}.book::after{inset:11px -7px -11px 7px}
   .sticker.hide-sm{display:none}
+}
+
+/* ---------- night paper (follows the device's dark mode) ---------- */
+@media (prefers-color-scheme:dark){
+  :root{
+    --desk:#0E1621; --paper:#1A2535; --paper-2:#141E2C; --line:rgba(130,175,225,.15);
+    --ink:#E8EEF5; --navy:#C9D9EC; --blue-dark:#86C3F2; --note:#3A3521;
+    --grey:#46586D; --grey-dark:#A6B4C4; --err:#FF9A8A; --card:#233248;
+  }
+  .brand .logo-l{display:none}.brand .logo-d{display:block}
+  .demo-note{background:#3A3521;color:#F3E7B8;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .book::before{background:var(--paper-2);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  .book::after{background:#101926}
+  .paper{box-shadow:0 18px 34px -20px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.06) inset}
+  .paper::before{background:radial-gradient(circle at 17px 50%,#0A1018 0 4.5px,#4B5C72 5px 6.5px,transparent 7px) 0 20px/34px 64px repeat-y,linear-gradient(90deg,rgba(0,0,0,.25),transparent)}
+  .rear-paper{box-shadow:inset -16px 0 24px -12px rgba(0,0,0,.5)}
+  .face.front::after{background:linear-gradient(90deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.5))}
+  .rule{border-top-color:rgba(201,217,236,.3)}
+  input[type=text],input[type=password],input[type=email]{border-bottom-color:#7C98B8}
+  input::placeholder,textarea::placeholder{color:#8393A6}
+  textarea{background-image:repeating-linear-gradient(to bottom,transparent 0 31px,rgba(130,175,225,.22) 31px 32px)}
+  .badge .nm,.btn.ghost{background:linear-gradient(180deg,#2D4059,#243349);color:var(--navy);
+    box-shadow:0 -2px 0 rgba(0,0,0,.3) inset,2px 3px 0 rgba(0,0,0,.55),0 8px 12px -6px rgba(0,0,0,.6)}
+  .badge .nm{outline-color:rgba(201,217,236,.45)}
+  .btn.ghost::after{border-color:rgba(201,217,236,.45)}
+  .btn.ghost:hover{background:linear-gradient(180deg,#3A4F6C,#2D4059);box-shadow:0 -2px 0 rgba(0,0,0,.3) inset,3px 5px 0 rgba(0,0,0,.55),0 12px 14px -6px rgba(0,0,0,.65)}
+  .btn.ghost:active{box-shadow:0 -2px 0 rgba(0,0,0,.3) inset,0 1px 0 rgba(0,0,0,.55)}
+  .btn.white{background:linear-gradient(180deg,#2D4059,#243349);color:var(--navy);box-shadow:0 -2px 0 rgba(0,0,0,.3) inset,2px 3px 0 rgba(0,0,0,.6)}
+  .btn.white::after{border-color:rgba(201,217,236,.45)}
+  .btn.white:hover{background:linear-gradient(180deg,#3A4F6C,#2D4059)}
+  .btn{box-shadow:0 -2px 0 rgba(0,30,60,.35) inset,2px 3px 0 rgba(0,0,0,.5),0 8px 12px -6px rgba(0,0,0,.6)}
+  .tape{background:rgba(255,204,51,.55)}
+  .note-card{box-shadow:0 3px 8px rgba(0,0,0,.45)}
+  .note-card .kicker{color:#F3D96B}
+  .progress,.tile,.cell.study,.chip,.x{background:var(--card);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .progress{box-shadow:0 3px 8px rgba(0,0,0,.4)}
+  .bar{background:rgba(201,217,236,.14)}.bar i{box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}
+  .dots span.done{background:#3E7FBF;color:#fff;border-color:#3E7FBF}
+  .dots span.now{border-color:#5AB0F0;box-shadow:0 0 0 3px rgba(90,176,240,.3)}
+  .cta{background:#0F2A47;box-shadow:0 5px 14px rgba(0,0,0,.5)}
+  .tile{border-color:rgba(201,217,236,.14)}
+  .tile:hover:not([disabled]){background:#2D4059;box-shadow:0 8px 14px -6px rgba(0,0,0,.6)}
+  .tile .disc{background:#16324D;color:#86C3F2}.tile.y .disc{background:#3A3521;color:#F3D96B}
+  .cell{color:rgba(201,217,236,.38)}
+  .cell.study{color:var(--navy)}.cell.study .dn{color:#86C3F2}
+  .cell.study:hover:not(.locked){background:#3A3521}
+  .cell.today{background:#0075BE;color:#fff}.cell.today .dn{color:#fff}
+  .cell .ticks b{box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+  .cell .over{background:rgba(20,30,44,.88);color:var(--navy)}
+  .entry{border-top-color:rgba(201,217,236,.25)}
+  .photo{background:#E9E4D6;box-shadow:0 3px 10px rgba(0,0,0,.55)}
+  .preview img{border-color:#E9E4D6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .chip{border-color:rgba(201,217,236,.4);box-shadow:1px 2px 0 rgba(0,0,0,.45);color:var(--navy)}
+  .chip[aria-pressed=true]{background:var(--yellow);color:#1b2b40}
+  .nav{background:rgba(20,30,44,.96);border-top-color:rgba(201,217,236,.2)}
+  .nav .plus{border-color:#141E2C}
+  .scrim{background:rgba(0,0,0,.65)}
+  .sheet{box-shadow:0 -10px 40px rgba(0,0,0,.6)}
+  .stamp-wrap svg{filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
+  @media (max-width:640px){
+    .paper::before{background:radial-gradient(circle at 14px 50%,#0A1018 0 4.5px,#4B5C72 5px 6.5px,transparent 7px) 0 20px/28px 64px repeat-y,linear-gradient(90deg,rgba(0,0,0,.25),transparent)}
+  }
 }
 </style>
 </head>
@@ -581,9 +648,11 @@ function swap(page, dir){
 
 /* ---------- shared pieces ---------- */
 function logo(){
-  const img = h('img',{src:'assets/logo.png',alt:'Bentley University, HF780 Diary'});
-  const wrap = h('span',{class:'brand'}, img);
-  img.addEventListener('error',()=>{ wrap.replaceChildren(h('span',{class:'brand-text'},'HF780 Diary')); });
+  const img = h('img',{class:'logo-l',src:'assets/logo.png',alt:'Bentley University, HF780 Diary'});
+  const imgD = h('img',{class:'logo-d',src:'assets/logo-dark.png',alt:'Bentley University, HF780 Diary'});
+  const wrap = h('span',{class:'brand'}, img, imgD);
+  const fallback = ()=>{ wrap.replaceChildren(h('span',{class:'brand-text'},'HF780 Diary')); };
+  img.addEventListener('error',fallback); imgD.addEventListener('error',fallback);
   return wrap;
 }
 function head(signedIn){
