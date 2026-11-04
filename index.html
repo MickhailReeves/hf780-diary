@@ -199,6 +199,7 @@ button.entry:hover .note{color:var(--blue-dark)}
 .backlink{margin:0 0 6px;display:inline-flex;align-items:center;gap:6px}
 .dateline{font:500 1.7rem/32px var(--hand);color:var(--grey-dark);margin:8px 0 6px}
 .welcome-logo{margin:4px 0 26px}.welcome-logo img{height:76px;width:auto;max-width:100%}
+@media (max-width:600px){.welcome-logo img{height:56px}}
 
 .nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,700px);z-index:30;display:flex;justify-content:space-around;align-items:flex-end;
   padding:8px 20px calc(10px + env(safe-area-inset-bottom));background:rgba(251,244,225,.96);border-top:1.5px solid rgba(43,69,102,.3);backdrop-filter:blur(6px)}
@@ -501,7 +502,7 @@ function swap(page, dir){
 
 /* ---------- shared pieces ---------- */
 function logo(){
-  const img = h('img',{src:'assets/logo.png',alt:'HF780 Diary'});
+  const img = h('img',{src:'assets/logo.png',alt:'Bentley University, HF770 Diary'});
   const wrap = h('span',{class:'brand'}, img);
   img.addEventListener('error',()=>{ wrap.replaceChildren(h('span',{class:'brand-text'},'HF780 Diary')); });
   return wrap;
