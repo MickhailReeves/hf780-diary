@@ -228,7 +228,8 @@ button.entry:hover .note{color:var(--blue-dark)}
 .attach{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
 .attach input[type=file]{display:none}
 .attach label.btn{margin:0;cursor:pointer;letter-spacing:.06em}
-.preview{margin:0 0 14px;display:flex;align-items:flex-start;gap:12px}
+.preview{margin:0 0 14px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px}
+.preview>div{display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:100%}
 .preview img{max-height:140px;width:auto;border:6px solid #fff;box-shadow:0 2px 8px rgba(36,59,87,.25)}
 .preview audio{max-width:100%}
 .guide li{margin:0 0 10px}
@@ -284,7 +285,7 @@ const NOT_FOR_ME_DAYS = [2,4,6];
 const KINDS = {
   prompt:{chip:'Daily prompt', tile:'Daily prompt', tag:'Daily prompt', icon:'pencil', label:'Your answer', ph:'Write your answer here.'},
   feels_like_me:{chip:'Feels like me', tile:'Feels like me', tag:'Feels like me', icon:'heart', label:'One sentence on why',
-    help:'Add a photo, screenshot, or voice memo of something that felt like you today, such as a product, brand, ad, song, place, or something someone else was wearing.', ph:'Why did this feel like you?'},
+    help:'Add a photo, screenshot, voice memo, or any mix of them, of something that felt like you today, such as a product, brand, ad, song, place, or something someone else was wearing.', ph:'Why did this feel like you?'},
   not_for_me:{chip:'Not for me', tile:'Not for me', tag:'Not for me', icon:'xcircle', label:'One sentence on why',
     help:'Add one thing that felt like it was not meant for you today.', ph:'Why did this feel not meant for you?'},
   movement:{chip:'Movement', tile:'Movement snapshot', tag:'Movement', icon:'pulse', label:'What made you choose this today?',
@@ -390,16 +391,19 @@ const liveApi = {
   },
   list:(n,c) => rpc('diary_list',{p_name:n,p_code:c}),
   async add(n,c,e){
-    let path = null, type = null;
-    if (e.blob){
-      type = (e.blob.type || 'application/octet-stream').split(';')[0];
-      path = uuid()+'/'+Date.now()+'.'+(EXT[type] || 'bin');
+    const up = async blob => {
+      if (!blob) return [null, null];
+      const type = (blob.type || 'application/octet-stream').split(';')[0];
+      const path = uuid()+'/'+Date.now()+'.'+(EXT[type] || 'bin');
       const r = await fetch(CFG.SUPABASE_URL+'/storage/v1/object/'+BUCKET+'/'+path,{
-        method:'POST', headers:Object.assign({},authHeaders(),{'Content-Type':type,'x-upsert':'false'}), body:e.blob
+        method:'POST', headers:Object.assign({},authHeaders(),{'Content-Type':type,'x-upsert':'false'}), body:blob
       });
       if (!r.ok){ const err = new Error('upload_failed'); err.code = 'upload_failed'; throw err; }
-    }
-    return rpc('diary_add_entry',{p_name:n,p_code:c,p_day:e.day,p_kind:e.kind,p_note:e.note||null,p_media_path:path,p_media_type:type});
+      return [path, type];
+    };
+    const [pp, pt] = await up(e.photo), [ap, at] = await up(e.audio);
+    return rpc('diary_add_entry',{p_name:n,p_code:c,p_day:e.day,p_kind:e.kind,p_note:e.note||null,
+      p_media_path:pp,p_media_type:pt,p_audio_path:ap,p_audio_type:at});
   },
   mediaUrl:p => CFG.SUPABASE_URL+'/storage/v1/object/public/'+BUCKET+'/'+p
 };
@@ -431,7 +435,8 @@ const demoApi = {
     const db = demoDB(), d = db[n.trim().toLowerCase()];
     if (!d || d.code !== c) throw Object.assign(new Error('wrong_code'),{code:'wrong_code'});
     d.entries.push({id:uuid(), study_day:e.day, kind:e.kind, note:e.note||null,
-      media_path:e.blob ? await toDataUrl(e.blob) : null, media_type:e.blob ? e.blob.type.split(';')[0] : null,
+      media_path:e.photo ? await toDataUrl(e.photo) : null, media_type:e.photo ? e.photo.type.split(';')[0] : null,
+      audio_path:e.audio ? await toDataUrl(e.audio) : null, audio_type:e.audio ? e.audio.type.split(';')[0] : null,
       created_at:new Date().toISOString()});
     if (!store.set(DEMO_KEY, JSON.stringify(db))){ d.entries.pop(); throw Object.assign(new Error('failed'),{code:'failed'}); }
     return {};
@@ -466,6 +471,56 @@ function prepClone(src){
   c.style.minHeight = src.offsetHeight + 'px';
   return c;
 }
+/* page-turn sound: a short synthesized paper swish (no audio file needed) */
+let audioCtx = null, soundOn = true;
+try{ soundOn = localStorage.getItem('hf780_sound') !== 'off'; }catch(e){}
+function setSound(on){ soundOn = on; try{ localStorage.setItem('hf780_sound', on ? 'on' : 'off'); }catch(e){} }
+function pageSound(dir){
+  if (!soundOn) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    audioCtx = audioCtx || new AC();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx, t = ctx.currentTime, dur = 0.42;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
+    const a = dir === 'back' ? [4800, 1600] : [1600, 4800];
+    bp.frequency.setValueAtTime(a[0], t); bp.frequency.exponentialRampToValueAtTime(a[1], t + dur * 0.8);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.07);
+    g.gain.exponentialRampToValueAtTime(0.12, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(t);
+    // soft thump as the page lands
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.setValueAtTime(110, t + dur * 0.7); o.frequency.exponentialRampToValueAtTime(55, t + dur);
+    og.gain.setValueAtTime(0.0001, t + dur * 0.7); og.gain.exponentialRampToValueAtTime(0.18, t + dur * 0.76); og.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.08);
+    o.connect(og); og.connect(ctx.destination); o.start(t + dur * 0.7); o.stop(t + dur + 0.1);
+  }catch(e){}
+}
+/* writing sound for Post: a few quick pencil strokes, synthesized */
+function writeSound(){
+  if (!soundOn) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    audioCtx = audioCtx || new AC();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx, t0 = ctx.currentTime;
+    const strokes = [[0, .13, 3200], [.15, .11, 4200], [.29, .15, 3000], [.46, .1, 4600], [.58, .17, 3400]];
+    strokes.forEach(([at, len, f]) => {
+      const t = t0 + at;
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * len), ctx.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2.2;
+      bp.frequency.setValueAtTime(f, t); bp.frequency.linearRampToValueAtTime(f * 0.8, t + len);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t + len * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(t);
+    });
+  }catch(e){}
+}
 function swap(page, dir){
   if (finishFlip) finishFlip();
   const old = stage.querySelector('.paper');
@@ -475,6 +530,7 @@ function swap(page, dir){
     return;
   }
   window.scrollTo(0,0);
+  pageSound(dir);
   stage.style.minHeight = Math.max(old.offsetHeight, 520) + 'px';
   stage.classList.add('flipping');
   const leaf = h('div',{class:'leaf '+dir,'aria-hidden':'true'});
@@ -510,16 +566,22 @@ function logo(){
 function head(signedIn){
   return h('div',{class:'head'}, logo(),
     signedIn ? h('div',{class:'badge'}, h('span',{class:'nm'}, meta.name),
+      (() => { const b = h('button',{class:'linkbtn',type:'button','aria-pressed':String(soundOn),'aria-label':'Page turn sound'},
+        soundOn ? 'Sound on' : 'Sound off');
+        b.addEventListener('click',()=>{ setSound(!soundOn); b.setAttribute('aria-pressed',String(soundOn)); b.textContent = soundOn ? 'Sound on' : 'Sound off'; if (soundOn) pageSound('fwd'); });
+        return b; })(),
       h('button',{class:'linkbtn',type:'button',onclick:()=>{ closeSheet(); clearSession(); go('#/'); }}, 'Close')) : null);
 }
 function entryNode(e, compact){
+  const isImg = !!(e.media_type && e.media_type.startsWith('image/'));
   const url = e.media_path ? mediaUrl(e.media_path) : null;
-  const isImg = e.media_type && e.media_type.startsWith('image/');
+  // Older entries kept a voice memo in the media fields; newer ones use audio_path.
+  const aUrl = e.audio_path ? mediaUrl(e.audio_path) : (url && !isImg ? url : null);
   const K = KINDS[e.kind] || KINDS.prompt;
   const inner = [
     h('div',{}, h('span',{class:'tag'}, K.tag), h('span',{class:'etime'}, (compact ? 'Day '+e.study_day+' · ' : '') + fmtStamp(e.created_at))),
     url && isImg ? h('div',{class:'photo'}, h('img',{src:url,alt:'Photo for '+K.tag+', Day '+e.study_day,loading:'lazy'})) : null,
-    url && !isImg ? (compact ? h('p',{class:'small',style:'margin:8px 0 0'}, 'Voice memo attached') : h('audio',{src:url,controls:true,preload:'none'})) : null,
+    aUrl ? (compact ? h('p',{class:'small',style:'margin:8px 0 0'}, 'Voice memo attached') : h('audio',{src:aUrl,controls:true,preload:'none','aria-label':'Voice memo for '+K.tag+', Day '+e.study_day})) : null,
     e.note ? h('p',{class:'note'}, e.note) : null
   ];
   return compact
@@ -728,7 +790,7 @@ function closeSheet(){
   if (composer){
     if (composer.rec){ composer.discard = true; try{ composer.rec.stop(); }catch(e){} }
     clearTimeout(composer.timer);
-    if (composer.url) URL.revokeObjectURL(composer.url);
+    (composer.urls || []).forEach(u => URL.revokeObjectURL(u));
     composer = null;
   }
   if (sheetEl){ sheetEl.remove(); scrimEl.remove(); sheetEl = scrimEl = null; setInert(false);
@@ -741,7 +803,7 @@ function openSheet(n, kind){
   closeSheet();
   opener = from && from !== document.body ? from : null;
   const allowed = ['prompt','feels_like_me'].concat(NOT_FOR_ME_DAYS.includes(n) ? ['not_for_me'] : [], ['movement']);
-  composer = {kind:kind && allowed.includes(kind) ? kind : 'prompt', blob:null, url:null, rec:null, timer:null, discard:false};
+  composer = {kind:kind && allowed.includes(kind) ? kind : 'prompt', photo:null, audio:null, urls:[], rec:null, timer:null, discard:false};
   const P = PROMPTS[n];
   const promptBox = h('div',{class:'note-card',style:'margin:8px 0 12px'}, h('span',{class:'tape'}), h('p',{class:'kicker'}, 'Prompt: '+P.title), h('p',{class:'hand'}, P.text));
   const help = h('p',{class:'small',style:'margin:0 0 12px'});
@@ -768,12 +830,24 @@ function openSheet(n, kind){
   }
   allowed.forEach(k => chipRow.append(h('button',{class:'chip',type:'button','data-k':k,'aria-pressed':'false',onclick:()=>setKind(k)}, icon(KINDS[k].icon,15), KINDS[k].chip)));
 
-  function clearMedia(){ if (composer.url) URL.revokeObjectURL(composer.url); composer.blob = null; composer.url = null; preview.replaceChildren(); }
+  function drawPreview(){
+    composer.urls.forEach(u => URL.revokeObjectURL(u)); composer.urls = [];
+    const parts = [];
+    if (composer.photo){
+      const u = URL.createObjectURL(composer.photo); composer.urls.push(u);
+      parts.push(h('div',{}, h('img',{src:u,alt:'Preview of your photo'}),
+        h('button',{class:'linkbtn',type:'button',onclick:()=>{ composer.photo = null; drawPreview(); }}, 'Remove photo')));
+    }
+    if (composer.audio){
+      const u = URL.createObjectURL(composer.audio); composer.urls.push(u);
+      parts.push(h('div',{}, h('audio',{src:u,controls:true,'aria-label':'Preview of your voice memo'}),
+        h('button',{class:'linkbtn',type:'button',onclick:()=>{ composer.audio = null; drawPreview(); }}, 'Remove voice memo')));
+    }
+    preview.replaceChildren(...parts);
+  }
   function showMedia(blob){
-    clearMedia(); composer.blob = blob; composer.url = URL.createObjectURL(blob);
-    preview.replaceChildren(
-      blob.type.startsWith('image/') ? h('img',{src:composer.url,alt:'Preview of your photo'}) : h('audio',{src:composer.url,controls:true}),
-      h('button',{class:'linkbtn',type:'button',onclick:clearMedia}, 'Remove'));
+    if (blob.type.startsWith('image/')) composer.photo = blob; else composer.audio = blob;
+    drawPreview();
   }
   fileIn.addEventListener('change', async () => {
     const f = fileIn.files[0]; fileIn.value = ''; if (!f) return; msg.textContent = '';
@@ -811,10 +885,11 @@ function openSheet(n, kind){
     msg.textContent = '';
     if (composer.rec){ msg.textContent = 'Stop the recording first, then post.'; return; }
     const text = note.value.trim();
-    if (!text && !composer.blob){ msg.textContent = 'Add a photo, a voice memo, or a few words before you post.'; return; }
+    if (!text && !composer.photo && !composer.audio){ msg.textContent = 'Add a photo, a voice memo, or a few words before you post.'; return; }
+    writeSound();
     post.disabled = true; post.textContent = 'Posting...';
     try{
-      await api.add(session.name, session.code, {day:n, kind:composer.kind, note:text, blob:composer.blob});
+      await api.add(session.name, session.code, {day:n, kind:composer.kind, note:text, photo:composer.photo, audio:composer.audio});
       await loadEntries();
       opener = null; closeSheet(); renderCurrent(); focusHeading(); stampPosted(n);
     }catch(e){

@@ -29,8 +29,10 @@ create table if not exists public.entries (
   note text check (note is null or char_length(note) <= 2000),
   media_path text check (media_path is null or char_length(media_path) <= 200),
   media_type text check (media_type is null or char_length(media_type) <= 100),
+  audio_path text check (audio_path is null or char_length(audio_path) <= 200),
+  audio_type text check (audio_type is null or char_length(audio_type) <= 100),
   created_at timestamptz not null default now(),
-  check (note is not null or media_path is not null)
+  constraint entries_content_check check (note is not null or media_path is not null or audio_path is not null)
 );
 create index if not exists entries_diary_idx on public.entries (diary_id, created_at);
 
@@ -131,14 +133,16 @@ begin
 end $$;
 
 create or replace function public.diary_add_entry(
-  p_name text, p_code text, p_day int, p_kind text, p_note text, p_media_path text, p_media_type text)
+  p_name text, p_code text, p_day int, p_kind text, p_note text, p_media_path text, p_media_type text,
+  p_audio_path text default null, p_audio_type text default null)
 returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_id uuid := public.diary_check(p_name, p_code);
   v_start date;
   e public.entries;
 begin
-  if p_media_path is not null and p_media_path !~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,80}$' then
+  if (p_media_path is not null and p_media_path !~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,80}$')
+     or (p_audio_path is not null and p_audio_path !~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,80}$') then
     raise exception 'invalid';
   end if;
   select start_date into v_start from public.diaries where id = v_id;
@@ -146,8 +150,8 @@ begin
      or v_start + (p_day - 1) > (now() at time zone 'America/New_York')::date then
     raise exception 'future_day';
   end if;
-  insert into public.entries (diary_id, study_day, kind, note, media_path, media_type)
-  values (v_id, p_day, p_kind, nullif(trim(coalesce(p_note,'')), ''), p_media_path, p_media_type)
+  insert into public.entries (diary_id, study_day, kind, note, media_path, media_type, audio_path, audio_type)
+  values (v_id, p_day, p_kind, nullif(trim(coalesce(p_note,'')), ''), p_media_path, p_media_type, p_audio_path, p_audio_type)
   returning * into e;
   return json_build_object('id', e.id, 'created_at', e.created_at);
 end $$;
@@ -159,7 +163,8 @@ begin
   return coalesce((
     select json_agg(json_build_object(
       'id', e.id, 'study_day', e.study_day, 'kind', e.kind, 'note', e.note,
-      'media_path', e.media_path, 'media_type', e.media_type, 'created_at', e.created_at
+      'media_path', e.media_path, 'media_type', e.media_type,
+      'audio_path', e.audio_path, 'audio_type', e.audio_type, 'created_at', e.created_at
     ) order by e.created_at)
     from public.entries e where e.diary_id = v_id
   ), '[]'::json);
@@ -168,7 +173,7 @@ end $$;
 grant execute on function public.diary_open(text, text) to anon;
 grant execute on function public.diary_create(text, text, text) to anon;
 grant execute on function public.diary_reset_code(text, text, text) to anon;
-grant execute on function public.diary_add_entry(text, text, int, text, text, text, text) to anon;
+grant execute on function public.diary_add_entry(text, text, int, text, text, text, text, text, text) to anon;
 grant execute on function public.diary_list(text, text) to anon;
 
 -- 4. Storage for photos and voice memos -------------------------------------
