@@ -11,7 +11,7 @@ create table if not exists public.diaries (
   name_key text not null unique,
   code_hash text not null,                      -- the participant's code, stored hashed
   -- Day 1 of the diary. Defaults to the day after sign-up. Edit it in the Table Editor if needed.
-  start_date date not null default ((now() at time zone 'America/New_York')::date + 1),
+  start_date date not null default ((now() at time zone 'America/New_York')::date),
   email text check (email is null or (char_length(email) <= 120 and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),  -- optional, for the 7 PM reminder
   last_reminder_date date,
   reset_hash text,                               -- one-time code for "Forgot code", stored hashed
