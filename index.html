@@ -472,7 +472,9 @@ function prepClone(src){
   return c;
 }
 /* page-turn sound: a short synthesized paper swish (no audio file needed) */
-let audioCtx = null, soundOn = true;
+let audioCtx = null, soundOn = true, soundFreeAt = 0;
+// Sounds queue up: each one starts only after the previous one has finished.
+function slot(ctx, dur){ const t = Math.max(ctx.currentTime, soundFreeAt); soundFreeAt = t + dur + 0.05; return t; }
 try{ soundOn = localStorage.getItem('hf780_sound') !== 'off'; }catch(e){}
 function setSound(on){ soundOn = on; try{ localStorage.setItem('hf780_sound', on ? 'on' : 'off'); }catch(e){} }
 function pageSound(dir){
@@ -481,7 +483,7 @@ function pageSound(dir){
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     audioCtx = audioCtx || new AC();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const ctx = audioCtx, t = ctx.currentTime, dur = 0.42;
+    const ctx = audioCtx, dur = 0.5, t = slot(ctx, dur);
     const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const src = ctx.createBufferSource(); src.buffer = buf;
@@ -506,7 +508,7 @@ function writeSound(){
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     audioCtx = audioCtx || new AC();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const ctx = audioCtx, t0 = ctx.currentTime;
+    const ctx = audioCtx, t0 = slot(ctx, 0.75);
     const strokes = [[0, .13, 3200], [.15, .11, 4200], [.29, .15, 3000], [.46, .1, 4600], [.58, .17, 3400]];
     strokes.forEach(([at, len, f]) => {
       const t = t0 + at;
