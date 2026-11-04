@@ -46,14 +46,16 @@ button{cursor:pointer}
 h1[tabindex='-1']:focus{outline:none}
 
 .demo-note{max-width:700px;margin:0 auto 14px;font:600 .85rem var(--ui);color:var(--navy);background:var(--note);padding:8px 14px;border-radius:2px;box-shadow:0 1px 3px rgba(36,59,87,.25);transform:rotate(-.4deg)}
-.book{position:relative;width:100%;max-width:700px;margin:0 auto 120px}
+.book{position:relative;width:100%;max-width:700px;margin:0 auto var(--bgap)}
+:root{--bgap:104px}
+body:has(.nav[hidden]){--bgap:22px}
 .book::before,.book::after{content:"";position:absolute;border-radius:4px 10px 10px 4px;background:var(--paper-2);box-shadow:0 1px 2px rgba(36,59,87,.25);z-index:0}
 .book::before{inset:7px -7px -7px 7px}
 .book::after{inset:13px -13px -13px 13px;background:#E4DDCB}
 .stage{position:relative;z-index:1;perspective:2600px}
 .stage.flipping{pointer-events:none}
 .paper{
-  position:relative;min-height:calc(100vh - 150px);padding:26px 28px 40px 62px;overflow:hidden;
+  position:relative;min-height:calc(100vh - 28px - var(--bgap));min-height:calc(100dvh - 28px - var(--bgap));padding:26px 28px 40px 62px;overflow:hidden;
   background-color:var(--paper);
   background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--line) 31px 32px),var(--grain);
   background-position:0 20px,0 0;
