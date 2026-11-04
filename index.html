@@ -715,7 +715,8 @@ function pageDay(n){
     h('div',{class:'note-card'}, h('span',{class:'tape'}),
       h('p',{class:'kicker'}, 'Prompt: '+P.title), h('p',{class:'hand'}, P.text)),
     h('div',{style:'margin:0 0 8px'},
-      h('button',{class:'btn',type:'button',onclick:()=>openSheet(n)}, 'Add to this page')),
+      h('button',{class:'btn',type:'button',onclick:()=>openSheet(n)}, 'Add to this page'),
+      st === 'past' ? h('p',{class:'small',style:'margin-top:8px'}, 'Missed this day? You can still add to it. Future days stay closed until their date.') : null),
     h('div',{class:'section-title'}, h('h2',{}, 'On this page'), h('span',{}, mine.length+' '+(mine.length === 1 ? 'entry' : 'entries'))),
     mine.length ? h('div',{class:'feed'}, mine.map(e => entryNode(e,false))) : h('p',{class:'empty'}, 'Nothing on this page yet. Your entries will appear here like lines in a diary.'));
 }
