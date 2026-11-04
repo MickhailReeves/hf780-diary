@@ -123,8 +123,9 @@ p{margin:0 0 12px}
 .btn .ic{margin-right:-2px}
 label,.field-label{display:block;font:600 .78rem var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--navy);margin:0 0 4px}
 .field{margin-bottom:22px}
-input[type=text],input[type=password]{width:100%;background:transparent;border:0;border-bottom:2px solid var(--navy);border-radius:0;padding:4px 2px;font:500 1.7rem/32px var(--hand);color:var(--ink)}
+input[type=text],input[type=password],input[type=email]{width:100%;background:transparent;border:0;border-bottom:2px solid var(--navy);border-radius:0;padding:4px 2px;font:500 1.7rem/32px var(--hand);color:var(--ink)}
 input::placeholder,textarea::placeholder{color:#6B7068;opacity:1}
+.altlinks{display:flex;flex-wrap:wrap;gap:4px 22px;margin-top:10px}
 .codewrap{position:relative}.codewrap input{padding-right:64px}.codewrap .linkbtn{position:absolute;right:0;bottom:8px}
 textarea{width:100%;display:block;resize:vertical;min-height:128px;border:0;background:transparent;
   background-image:repeating-linear-gradient(to bottom,transparent 0 31px,rgba(0,117,190,.28) 31px 32px);background-attachment:local;
@@ -376,6 +377,16 @@ const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xx
 
 const liveApi = {
   open:(n,c) => rpc('diary_open',{p_name:n,p_code:c}),
+  create:(n,c,em) => rpc('diary_create',{p_name:n,p_code:c,p_email:em}),
+  async requestReset(n){
+    const r = await fetch(CFG.SUPABASE_URL+'/functions/v1/reset-code',{method:'POST',headers:Object.assign({},authHeaders(),{'Content-Type':'application/json'}),body:JSON.stringify({name:n})});
+    if (!r.ok){ const err = new Error('request_failed'); err.code = 'request_failed'; throw err; }
+  },
+  async resetCode(n,t,c){
+    const r = await rpc('diary_reset_code',{p_name:n,p_token:t,p_new_code:c});
+    if (r && r.error){ const err = new Error(r.error); err.code = r.error; throw err; }
+    return r;
+  },
   list:(n,c) => rpc('diary_list',{p_name:n,p_code:c}),
   async add(n,c,e){
     let path = null, type = null;
@@ -396,17 +407,20 @@ const DEMO_KEY = 'hf780_demo_v1';
 const demoDB = () => { try{ return JSON.parse(store.get(DEMO_KEY) || '{}'); }catch(e){ return {}; } };
 const toDataUrl = blob => new Promise((res,rej)=>{ const f = new FileReader(); f.onload = () => res(f.result); f.onerror = rej; f.readAsDataURL(blob); });
 const demoApi = {
-  async open(n,c){
+  async create(n,c,em){
     const key = n.trim().toLowerCase(), db = demoDB();
-    let d = db[key];
-    if (!d){
-      d = db[key] = {name:n.trim(), code:c, start_date:ymd(new Date()), entries:[]};
-      if (!store.set(DEMO_KEY, JSON.stringify(db))) throw Object.assign(new Error('failed'),{code:'failed'});
-      return {name:d.name,start_date:d.start_date,created:true};
-    }
-    if (d.code !== c) throw Object.assign(new Error('wrong_code'),{code:'wrong_code'});
+    if (db[key]) throw Object.assign(new Error('exists'),{code:'exists'});
+    const d = db[key] = {name:n.trim(), code:c, email:em, start_date:ymd(new Date()), entries:[]};
+    if (!store.set(DEMO_KEY, JSON.stringify(db))) throw Object.assign(new Error('failed'),{code:'failed'});
+    return {name:d.name,start_date:d.start_date,created:true};
+  },
+  async open(n,c){
+    const d = demoDB()[n.trim().toLowerCase()];
+    if (!d || d.code !== c) throw Object.assign(new Error('wrong_code'),{code:'wrong_code'});
     return {name:d.name,start_date:d.start_date,created:false};
   },
+  async requestReset(){},
+  async resetCode(){ throw Object.assign(new Error('wrong_reset'),{code:'wrong_reset'}); },
   async list(n,c){
     const d = demoDB()[n.trim().toLowerCase()];
     if (!d || d.code !== c) throw Object.assign(new Error('wrong_code'),{code:'wrong_code'});
@@ -513,36 +527,99 @@ function entryNode(e, compact){
 }
 
 /* ---------- page: welcome ---------- */
-function pageWelcome(){
-  const err = h('p',{class:'msg err',role:'alert'});
-  const name = h('input',{id:'f-name',type:'text',autocomplete:'given-name',maxlength:'40',required:true,placeholder:'Your first name'});
-  const code = h('input',{id:'f-code',type:'password',autocomplete:'off',maxlength:'40',required:true,placeholder:'At least 4 characters'});
-  const toggle = h('button',{class:'linkbtn',type:'button','aria-label':'Show or hide code',onclick:()=>{
+let welcomeMode = 'create', welcomeName = '', welcomeNote = '';
+function setMode(m, note){
+  welcomeMode = m; welcomeNote = note || '';
+  renderCurrent();
+  const f = $('#f-name') || $('#f-token'); if (f) f.focus();
+}
+function codeField(id, label, ph){
+  const code = h('input',{id:id,type:'password',autocomplete:'off',maxlength:'40',required:true,placeholder:ph || 'At least 4 characters'});
+  const toggle = h('button',{class:'linkbtn',type:'button','aria-label':'Show or hide '+label.toLowerCase(),onclick:()=>{
     const show = code.type === 'password'; code.type = show ? 'text' : 'password'; toggle.textContent = show ? 'Hide' : 'Show';
   }}, 'Show');
-  const btn = h('button',{class:'btn',type:'submit'}, 'Open my diary');
+  return {input:code, node:h('div',{class:'field'}, h('label',{for:id}, label), h('div',{class:'codewrap'}, code, toggle))};
+}
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function pageWelcome(){
+  const mode = welcomeMode;
+  const err = h('p',{class:'msg err',role:'alert'});
+  const note = h('p',{class:'msg',role:'status',style:'color:var(--navy)'}, welcomeNote);
+  const name = h('input',{id:'f-name',type:'text',autocomplete:'given-name',maxlength:'40',required:true,placeholder:'Your first name',value:welcomeName});
+  name.addEventListener('input',()=>{ welcomeName = name.value; });
+  const nameField = h('div',{class:'field'}, h('label',{for:'f-name'},'Your name'), name);
+  const btn = h('button',{class:'btn',type:'submit'});
+  const fail = (e) => {
+    err.textContent = e.code === 'wrong_code' ? 'That name and code do not match. Try again, or choose Forgot code.'
+      : e.code === 'exists' ? 'That name is already taken. Use a different name, or open your diary instead.'
+      : e.code === 'invalid_email' ? 'That email address does not look right. Please check it.'
+      : e.code === 'invalid' ? 'Please enter your name and a code with at least 4 characters.'
+      : e.code === 'closed' ? 'New diaries are closed. Please ask the researcher for help.'
+      : e.code === 'wrong_reset' ? 'That reset code is not right or has expired. Send yourself a new one.'
+      : 'Something went wrong. Check your connection and try again.';
+    btn.disabled = false; btn.textContent = label;
+  };
+  let label, fields, links, heading, intro, onSubmit;
+  const finish = async (n, c, m) => { meta = m; session = {name:m.name || n, code:c}; saveSession(); await loadEntries(); go('#/home'); };
+
+  if (mode === 'create'){
+    const code = codeField('f-code','Make a code');
+    const email = h('input',{id:'f-email',type:'email',autocomplete:'email',maxlength:'120',required:true,placeholder:'name@example.com'});
+    label = 'Create my diary'; heading = 'Create your diary';
+    intro = 'Pick a name and make up a code you will remember. You will use them to come back on any device.';
+    fields = [nameField, code.node, h('div',{class:'field'}, h('label',{for:'f-email'},'Your email'), email,
+      h('p',{class:'small',style:'margin:6px 0 0'},'Used only to send one reminder each evening at 7 PM during the study, and a reset code if you forget your code. You will not need it to log in.'))];
+    links = [h('button',{class:'linkbtn',type:'button',onclick:()=>setMode('open')},'Already have a diary? Open it')];
+    onSubmit = async () => {
+      const n = name.value.trim(), c = code.input.value, em = email.value.trim();
+      if (!n || c.length < 4){ throw {code:'invalid'}; }
+      if (!EMAIL_RE.test(em)) throw {code:'invalid_email'};
+      await finish(n, c, await api.create(n, c, em));
+    };
+  } else if (mode === 'open'){
+    const code = codeField('f-code','Your code','Your code');
+    label = 'Open my diary'; heading = 'Open your diary';
+    intro = 'Use the same name and code you made, on this device or any other.';
+    fields = [nameField, code.node];
+    links = [h('button',{class:'linkbtn',type:'button',onclick:()=>setMode('forgot')},'Forgot code?'),
+             h('button',{class:'linkbtn',type:'button',onclick:()=>setMode('create')},'New here? Create a diary')];
+    onSubmit = async () => {
+      const n = name.value.trim(), c = code.input.value;
+      if (!n || !c) throw {code:'wrong_code'};
+      await finish(n, c, await api.open(n, c));
+    };
+  } else if (mode === 'forgot'){
+    label = 'Send me a reset code'; heading = 'Forgot your code?';
+    intro = 'Type your name. If it has an email on file, we will send a 6-digit reset code to that email.';
+    fields = [nameField];
+    links = [h('button',{class:'linkbtn',type:'button',onclick:()=>setMode('open')},'Back to open my diary')];
+    onSubmit = async () => {
+      const n = name.value.trim();
+      if (!n) throw {code:'invalid'};
+      await api.requestReset(n);
+      setMode('reset', LIVE ? 'If that name has an email on file, a code is on its way. It works for 30 minutes.' : 'Preview mode: no email is sent.');
+    };
+  } else {
+    const token = h('input',{id:'f-token',type:'text',inputmode:'numeric',autocomplete:'one-time-code',maxlength:'6',required:true,placeholder:'6-digit code'});
+    const code = codeField('f-code','Make a new code');
+    label = 'Save new code and open'; heading = 'Reset your code';
+    intro = 'Enter the 6-digit code from your email, then choose a new code.';
+    fields = [nameField, h('div',{class:'field'}, h('label',{for:'f-token'},'Reset code from email'), token), code.node];
+    links = [h('button',{class:'linkbtn',type:'button',onclick:()=>setMode('forgot')},'Send a new reset code'),
+             h('button',{class:'linkbtn',type:'button',onclick:()=>setMode('open')},'Back to open my diary')];
+    onSubmit = async () => {
+      const n = name.value.trim(), t = token.value.trim(), c = code.input.value;
+      if (!n || !t || c.length < 4) throw {code:'invalid'};
+      await finish(n, c, await api.resetCode(n, t, c));
+    };
+  }
+  btn.textContent = label;
   const form = h('form',{novalidate:true,onsubmit: async ev => {
     ev.preventDefault(); err.textContent = '';
-    const n = name.value.trim(), c = code.value;
-    if (!n || c.length < 4){ err.textContent = 'Please enter your name and a code with at least 4 characters.'; return; }
-    btn.disabled = true; btn.textContent = 'Opening...';
-    try{
-      meta = await api.open(n, c);
-      session = {name:meta.name || n, code:c}; saveSession();
-      await loadEntries();
-      go('#/home');
-    }catch(e){
-      session = null;
-      err.textContent = e.code === 'wrong_code' ? 'That code does not match this name. Try again, or use a different name if this is your first time.'
-        : e.code === 'invalid' ? 'Please enter your name and a code with at least 4 characters.'
-        : e.code === 'closed' ? 'New diaries are closed. Check your name and code, or ask the researcher for help.'
-        : 'Something went wrong. Check your connection and try again.';
-      btn.disabled = false; btn.textContent = 'Open my diary';
-    }
-  }},
-    h('div',{class:'field'}, h('label',{for:'f-name'},'Your name'), name),
-    h('div',{class:'field'}, h('label',{for:'f-code'},'Your code'), h('div',{class:'codewrap'}, code, toggle)),
-    btn, err);
+    btn.disabled = true; btn.textContent = 'One moment...';
+    try{ await onSubmit(); }catch(e){ session = null; fail(e); }
+  }}, fields, note, btn, err, h('div',{class:'altlinks'}, links));
+
   return h('article',{class:'paper'},
     leafSticker('', 'right:18px;top:14px;width:54px;height:54px;transform:rotate(18deg)'),
     h('div',{class:'welcome-logo'}, logo()),
@@ -551,8 +628,8 @@ function pageWelcome(){
     h('hr',{class:'rule'}),
     h('p',{class:'lede'},'For the next six days, you will keep a small diary of moments from your everyday life. Anything counts, and there are no right or wrong answers.'),
     h('p',{class:'small'},'Your entries are only used for this class project. You can skip any entry or stop at any time.'),
-    h('h2',{style:'margin:30px 0 6px'},'Open your diary'),
-    h('p',{class:'small',style:'margin-bottom:22px'},'First time? Type your name and make up a code you will remember. Coming back, on this device or another one? Use the same name and code.'),
+    h('h2',{style:'margin:30px 0 6px'}, heading),
+    h('p',{class:'small',style:'margin-bottom:22px'}, intro),
     form);
 }
 

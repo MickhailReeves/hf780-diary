@@ -12,6 +12,12 @@ create table if not exists public.diaries (
   code_hash text not null,                      -- the participant's code, stored hashed
   -- Day 1 of the diary. Defaults to the day after sign-up. Edit it in the Table Editor if needed.
   start_date date not null default ((now() at time zone 'America/New_York')::date + 1),
+  email text check (email is null or (char_length(email) <= 120 and email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')),  -- optional, for the 7 PM reminder
+  last_reminder_date date,
+  reset_hash text,                               -- one-time code for "Forgot code", stored hashed
+  reset_expires timestamptz,
+  reset_requested_at timestamptz,
+  reset_attempts int not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -49,33 +55,78 @@ begin
 end $$;
 revoke all on function public.diary_check(text, text) from public, anon, authenticated;
 
+-- Log in only. Never creates a diary.
 create or replace function public.diary_open(p_name text, p_code text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare d public.diaries;
+begin
+  select * into d from public.diaries where name_key = lower(trim(coalesce(p_name,'')));
+  if not found or d.code_hash <> crypt(coalesce(p_code,''), d.code_hash) then
+    raise exception 'wrong_code';
+  end if;
+  return json_build_object('name', d.name, 'start_date', d.start_date, 'created', false);
+end $$;
+
+-- Create a diary. Email is required here (7 PM reminder and code reset).
+create or replace function public.diary_create(p_name text, p_code text, p_email text)
 returns json language plpgsql security definer set search_path = public, extensions as $$
 declare
   d public.diaries;
   k text := lower(trim(coalesce(p_name,'')));
+  em text := lower(trim(coalesce(p_email,'')));
   max_diaries constant int := 5;               -- most diaries that can ever be created (stops spam)
 begin
   if char_length(k) < 1 or char_length(k) > 40
      or char_length(coalesce(p_code,'')) < 4 or char_length(p_code) > 40 then
     raise exception 'invalid';
   end if;
-
-  select * into d from public.diaries where name_key = k;
-
-  if not found then
-    if (select count(*) from public.diaries) >= max_diaries then
-      raise exception 'closed';
-    end if;
-    insert into public.diaries (name, name_key, code_hash)
-    values (trim(p_name), k, crypt(p_code, gen_salt('bf')))
-    returning * into d;
-    return json_build_object('name', d.name, 'start_date', d.start_date, 'created', true);
+  if char_length(em) > 120 or em !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+    raise exception 'invalid_email';
   end if;
+  if exists (select 1 from public.diaries where name_key = k) then raise exception 'exists'; end if;
+  if (select count(*) from public.diaries) >= max_diaries then raise exception 'closed'; end if;
+  insert into public.diaries (name, name_key, code_hash, email)
+  values (trim(p_name), k, crypt(p_code, gen_salt('bf')), em)
+  returning * into d;
+  return json_build_object('name', d.name, 'start_date', d.start_date, 'created', true);
+end $$;
 
-  if d.code_hash <> crypt(p_code, d.code_hash) then
-    raise exception 'wrong_code';
+-- Used only by the reset-code Edge Function (service role). Stores a hashed one-time code.
+create or replace function public.diary_issue_reset(p_name text, p_token text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare d public.diaries;
+begin
+  select * into d from public.diaries where name_key = lower(trim(coalesce(p_name,'')));
+  if not found or d.email is null then return null; end if;
+  if d.reset_requested_at is not null and d.reset_requested_at > now() - interval '5 minutes' then
+    return json_build_object('throttled', true);
   end if;
+  update public.diaries
+     set reset_hash = crypt(p_token, gen_salt('bf')), reset_expires = now() + interval '30 minutes',
+         reset_requested_at = now(), reset_attempts = 0
+   where id = d.id;
+  return json_build_object('name', d.name, 'email', d.email);
+end $$;
+revoke all on function public.diary_issue_reset(text, text) from public, anon, authenticated;
+grant execute on function public.diary_issue_reset(text, text) to service_role;
+
+-- Participant enters the emailed code plus a new code. Five wrong tries cancels the reset.
+create or replace function public.diary_reset_code(p_name text, p_token text, p_new_code text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare d public.diaries;
+begin
+  if char_length(coalesce(p_new_code,'')) < 4 or char_length(p_new_code) > 40 then raise exception 'invalid'; end if;
+  select * into d from public.diaries where name_key = lower(trim(coalesce(p_name,'')));
+  if not found or d.reset_hash is null or d.reset_expires < now() or d.reset_attempts >= 5 then
+    return json_build_object('error', 'wrong_reset');
+  end if;
+  if d.reset_hash <> crypt(coalesce(p_token,''), d.reset_hash) then
+    update public.diaries set reset_attempts = reset_attempts + 1 where id = d.id;
+    return json_build_object('error', 'wrong_reset');
+  end if;
+  update public.diaries
+     set code_hash = crypt(p_new_code, gen_salt('bf')), reset_hash = null, reset_expires = null, reset_attempts = 0
+   where id = d.id;
   return json_build_object('name', d.name, 'start_date', d.start_date, 'created', false);
 end $$;
 
@@ -109,6 +160,8 @@ begin
 end $$;
 
 grant execute on function public.diary_open(text, text) to anon;
+grant execute on function public.diary_create(text, text, text) to anon;
+grant execute on function public.diary_reset_code(text, text, text) to anon;
 grant execute on function public.diary_add_entry(text, text, int, text, text, text, text) to anon;
 grant execute on function public.diary_list(text, text) to anon;
 

@@ -45,9 +45,10 @@ The anon or publishable key is meant to be public. It is safe in a public reposi
 
 ## How the participant gets in
 
-- First visit: they type their first name and make up a code (4 or more characters). That creates the diary.
-- Any later visit, on any device: same name and same code.
-- The code is stored scrambled (hashed), so you cannot read it either. If they forget it, delete their row in `diaries` and have them start again, or ask them to re-enter their entries.
+- First visit: they choose **Create my diary**, type a first name, make up a code (4 or more characters) and give an email. The email is only used for the 7 PM reminder and for resetting a forgotten code.
+- Any later visit, on any device: **Open my diary** with the same name and code. No email needed.
+- Forgot the code: **Forgot code?** sends a 6-digit reset code to the email on file (good for 30 minutes), then they choose a new code.
+- The code is stored scrambled (hashed), so you cannot read it either. If email reset is not working, delete their row in `diaries` and have them start again.
 
 ## Where you see the participant's entries
 
@@ -76,3 +77,7 @@ Click **Download CSV** above the results to save it. Photos and voice memos are 
 - **Privacy:** Ask for a first name only. After the class is over, delete the project or the rows (Project Settings > General > Delete project). If you would rather stop new uploads earlier, in **Storage > Policies** delete the policy named `diary anon upload`.
 - **Only a small number of diaries can be created** (5 by default, set by `max_diaries` in `schema.sql`). This stops strangers from creating diaries if they find the link.
 - **Study dates:** Day 1 to Day 6 follow the `start_date` in the `diaries` table, so you can move the week by editing that one date.
+
+## Email reminders and code reset
+
+See `supabase/reminders.md`. Both need two secrets in Supabase (Edge Functions > Secrets): `BREVO_API_KEY` and `SENDER_EMAIL`. Without them the site works, but no emails are sent.
